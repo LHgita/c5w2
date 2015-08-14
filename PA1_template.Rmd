@@ -1,0 +1,270 @@
+# Reproducible Research: Peer Assessment 1
+
+## Loading and preprocessing the data
+
+### Load the data (i.e. read.csv())
+### Process/transform the data (if necessary) into a format suitable for analysis
+
+```{r}
+setwd("C:/Leo/do/DataScience/RWD")
+activity <- read.csv("./data/activity.csv", stringsAsFactors=FALSE)
+str(activity)
+```
+
+date values aren't particularly useful...
+
+AD means Activity with Dates
+
+```{r}
+AD <- data.frame(steps = activity$steps, date = as.POSIXct(activity$date, format="%Y-%m-%d"), interval = activity$interval)
+summary(AD)
+```
+
+Yes, that's much nicer.
+
+Last assignment section is titled "Are there differences in activity patterns between weekdays and weekends?"
+
+So need to determine day of week, then weekdays versus weekends.
+
+Compute the weekdays from the date attribute
+ADD means "Activity with Days and Dates" not "Attention Deficit Disorder"
+
+```{r}
+ADD <- data.frame(steps = AD$steps, date = AD$date, interval = AD$interval, weekday = (weekdays(AD$date)))
+summary(ADD)
+```
+
+Hmmm... no mention of Wednesday, but that's probably just because of how "summary" works...
+
+Check...
+
+```{r}
+unique(ADD$weekday)
+```
+
+Yes, it is good, good for the hive...
+
+Strange - I wonder why there are 2592 weekdays but only 2304 weekend days in the data set...
+
+Need more exploration here but not gonna do it.
+
+Note To Do: More data analysis needed!
+
+Now that we have days of the week, generate weekend values
+
+Thanksgiving and Halloween both fall in this date range.
+
+These should be flagged as outliers or considered separately. Or something.
+
+Or create another category, i.e. weekday | weekend | holiday
+
+Note To Do: Known deficiency in this data setup!
+
+ADDWE means Activities with Days, Dates, and WeekEnds
+
+```{r}
+ADDWE <- cbind(ADD, WE_WD=ifelse(ADD$weekday == "Saturday" | ADD$weekday == "Sunday", "weekend", "weekday"))
+summary(ADDWE)
+```
+
+## What is mean total number of steps taken per day?
+
+### For this part of the assignment, you can ignore the missing values in the dataset.
+
+#### Calculate the total number of steps taken per day
+
+```{r}
+ADAgg <- aggregate(ADDWE$steps, by=list(ADDWE$date), FUN=sum, na.rm=TRUE)
+head(ADAgg)
+```
+
+The above works fine but could be more nicely labeled.
+Apply some labels...
+
+```{r}
+names(ADAgg) <- c("Date", "Steps")
+head(ADAgg)
+```
+
+#### If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day
+
+```{r}
+hist(ADAgg$Steps,
+     breaks=seq(from=0, to=25000, by=5000),
+     col="green",
+     xlab="Number of steps",
+     ylab="Frequency of occurence",
+     ylim=c(0, 30),
+     main="Distribution of steps taken per day")
+```
+
+#### Calculate and report the mean and median of the total number of steps taken per day
+
+```{r}
+mean(ADAgg$Steps)
+median(ADAgg$Steps)
+```
+
+## What is the average daily activity pattern?
+
+### Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+(Presume that by "average" they mean "mean"...)
+
+```{r}
+ADDM <- aggregate(ADDWE$steps, by=list(ADDWE$interval), FUN=mean, na.rm=TRUE)
+head(ADDM)
+tail(ADDM)
+```
+
+Looks good but let's nicely name columns...
+
+```{r}
+names(ADDM) <- c("MinutesPastMidnight", "MeanNumSteps")
+head(ADDM)
+```
+
+Now for the time series plot...
+
+```{r}
+plot(ADDM$MinutesPastMidnight, ADDM$MeanNumSteps,
+     type="l", col="pink", lwd=2,
+     xlab="Minutes Past Midnight\n(beginning of interval)", ylab="Mean number of steps",
+     main="Mean steps/5-minute interval")
+```
+
+### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+Find the period
+
+```{r}
+MaxPd <- which(ADDM$MeanNumSteps == max(ADDM$MeanNumSteps))
+MaxPd
+```
+
+More finding...
+
+```{r}
+MaxInt <- ADDM[MaxPd, 1]
+MaxInt
+```
+
+That looks just about right according to the histogram
+
+```{r}
+835/60
+```
+
+Close to 14:00; seems a bit late in the day, but that's what the data say.
+
+Would look further to make sure things are passing the sniff test; no "off by on error," NAs not getting in the way, etc.
+
+Note To Do: Sanity check, sniff test here
+
+## Imputing missing values
+
+### Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+#### Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+```{r}
+NumNAs <- sum(is.na(ADDWE$steps))
+NumNAs
+```
+
+Verified by
+
+1. Sorting the data set/.csv file, then
+2. counting NA rows. It's right.
+
+#### Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+Easiest strategy and arguably the most accurate is to just set 'em to zero.
+
+```{r}
+SubstEm <- function(steps, interval) {
+    f <- NA
+    if (!is.na(steps)) f <- c(steps)
+    else f <- 0
+    return(f)
+}
+```
+
+#### Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+ADDWEC Stands for Activities with Days, Dates, and WeekEnds - Cleaned
+
+```{r}
+ADDWEC <- ADDWE
+ADDWEC$steps <- mapply(SubstEm, ADDWEC$steps, ADDWEC$interval)
+```
+
+#### Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+OK, just run the same code as above, slightly modified, to make histogram and calc median and mean...
+
+```{r}
+ADDM1 <- aggregate(ADDWEC$steps, by=list(ADDWEC$interval), FUN=mean, na.rm=TRUE)
+names(ADDM1) <- c("MinutesPastMidnight", "MeanNumSteps")
+```
+
+
+As before, the time series plot...
+
+```{r}
+plot(ADDM1$MinutesPastMidnight, ADDM1$MeanNumSteps,
+     type="l", col="black", lwd=2,
+     xlab="Minutes Past Midnight\n(beginning of interval)", ylab="Mean number of steps",
+     main="Mean steps/5-minute interval")
+```
+
+As before...
+
+```{r}
+MaxPd <- which(ADDM1$MeanNumSteps == max(ADDM1$MeanNumSteps))
+MaxPd
+
+MaxInt <- ADDM1[MaxPd, 1]
+MaxInt
+```
+
+Nothing changed by substituting zeroes for NAs.
+
+This seems odd. Could explore further but I am tired.
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+### For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+#### Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+It's already in there, from above: see here:
+
+```{r}
+head(ADDWEC)
+```
+
+#### Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+```{r}
+library(lattice)
+
+# Mean steps by WE_WD
+AM <- aggregate(ADDWEC$steps,
+                by=list(ADDWEC$WE_WD, ADDWEC$weekday, ADDWEC$interval), mean)
+
+names(AM) <- c("daytype", "weekday", "interval", "mean")
+head(AM)
+```
+
+Labels are OK but data look kind of useless - don't worry for now, just plot.
+
+```{r}
+xyplot(mean ~ interval | daytype, AM,
+       type="l",
+       lwd=1,
+       xlab="Interval",
+       ylab="Number of steps",
+       layout=c(1,2))
+```
+
