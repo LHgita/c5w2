@@ -98,6 +98,8 @@ hist(ADAgg$Steps,
      main="Distribution of steps taken per day")
 ```
 
+     ![Plot 1](/figures/fig1.png)
+
 #### Calculate and report the mean and median of the total number of steps taken per day
 
 ```{r}
@@ -132,6 +134,8 @@ plot(ADDM$MinutesPastMidnight, ADDM$MeanNumSteps,
      xlab="Minutes Past Midnight\n(beginning of interval)", ylab="Mean number of steps",
      main="Mean steps/5-minute interval")
 ```
+
+![Plot 2](/figures/fig2.png)
 
 ### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
@@ -218,6 +222,8 @@ plot(ADDM1$MinutesPastMidnight, ADDM1$MeanNumSteps,
      main="Mean steps/5-minute interval")
 ```
 
+![Plot 3](/figures/fig3.png)
+
 As before...
 
 ```{r}
@@ -268,3 +274,4 @@ xyplot(mean ~ interval | daytype, AM,
        layout=c(1,2))
 ```
 
+![Plot 4](/figures/fig4.png)
