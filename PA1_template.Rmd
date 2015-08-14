@@ -98,7 +98,7 @@ hist(ADAgg$Steps,
      main="Distribution of steps taken per day")
 ```
 
-     ![Plot 1](/figures/fig1.png)
+![Plot 1](/figures/fig1.png)
 
 #### Calculate and report the mean and median of the total number of steps taken per day
 
